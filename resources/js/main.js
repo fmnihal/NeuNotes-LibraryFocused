@@ -10,7 +10,6 @@ Neutralino.events.on("windowClose", onWindowClose);
 // --- Our New Library-App Code Starts Here ---
 
 // 3. Define the path for our notes directory
-// NL_PATH is the app's root data directory
 const NOTES_DIR = `${NL_PATH}/notes`;
 
 // 4. Get our HTML elements
@@ -19,18 +18,21 @@ let saveButton = document.getElementById('save-btn');
 let statusMessage = document.getElementById('status-message');
 let notesList = document.getElementById('notes-list'); // The <ul>
 let filenameInput = document.getElementById('filename-input'); // The <input>
-let noteItem = document.createElement('li');
+// This new variable will track our app's state
+let currentOpenNote = null; // 'null' will mean "a new, unsaved note"
 
-// --- Functions will go here ---
+// --- NEW VIEW-MANAGEMENT VARIABLES ---
+let libraryView = document.getElementById('library-view');
+let editorView = document.getElementById('editor-view');
+let newNoteBtn = document.getElementById('new-note-btn');
+let backBtn = document.getElementById('back-btn');
+
 // Function to create the notes directory if it doesn't exist
 async function setupApp() {
   try {
-    // This command will create the folder.
-    // If the folder already exists, it will throw an error.
     await Neutralino.filesystem.createDirectory(NOTES_DIR);
     console.log("Notes directory created.");
   } catch (err) {
-    // We expect an error if the directory already exists, so we can ignore it.
     console.log("Notes directory already exists or another error occurred.");
     console.error(err);
   }
@@ -38,7 +40,6 @@ async function setupApp() {
 
 // Function to read the notes directory and display the files
 async function loadNotesList() {
-  // Clear the list first to avoid duplicates
   notesList.innerHTML = ''; 
   
   try {
@@ -47,14 +48,17 @@ async function loadNotesList() {
     for (let entry of entries) {
       if (entry.type === 'FILE' && entry.entry.endsWith('.txt')) {
         let noteItem = document.createElement('li');
-        noteItem.innerText = entry.entry; // This is the filename
+        noteItem.innerText = entry.entry; 
         
-        // --- THIS IS THE NEW PART ---
-        // Add a click event listener to the list item
         noteItem.addEventListener('click', () => {
+          // 1. Hide libraryView
+          libraryView.style.display = 'none'; 
+          // 2. Show editorView
+          editorView.style.display = 'block'; 
+
+          // 3. Load the note content
           loadNoteIntoEditor(entry.entry);
         });
-        // --- END OF NEW PART ---
 
         notesList.appendChild(noteItem);
       }
@@ -64,22 +68,22 @@ async function loadNotesList() {
   }
 }
 
-// --- Now, we need to CALL these functions when the app launches ---
-
-// We'll run them right after Neutralino.init()
-Neutralino.events.on("ready", async () => {
-  await setupApp();
-  await loadNotesList();
-});
-
-
 // Function to save the current note
 async function saveNotes() {
   // 1. Get the filename and content
   let filename = filenameInput.value;
   let content = noteArea.value;
+  
+  let filenameToSave;
+  if (currentOpenNote === null) {
+    // It's a NEW note.
+    filenameToSave = filenameInput.value;
+  } else {
+    // It's an EXISTING note.
+    filenameToSave = currentOpenNote;
+  }
 
-  // 2. Basic validation
+  // 2. Basic validation -- THIS FIXES THE NEW NOTE BUG
   if (!filename) {
     statusMessage.innerText = "Please enter a filename.";
     statusMessage.style.color = "red";
@@ -98,11 +102,12 @@ async function saveNotes() {
   try {
     await Neutralino.filesystem.writeFile(fullPath, content);
     
-    // Success! Show a message and clear the inputs
+    // Success! Show a message
     statusMessage.innerText = "Note saved successfully!";
     statusMessage.style.color = "green";
-    noteArea.value = '';
-    filenameInput.value = '';
+
+    // THIS IS NEW: Make the input read-only AFTER a successful save
+    filenameInput.readOnly = true;
 
     // IMPORTANT: Reload the list in the sidebar
     await loadNotesList();
@@ -114,13 +119,12 @@ async function saveNotes() {
   }
 }
 
-// --- And, we need to attach this to the save button ---
-saveButton.addEventListener('click', saveNotes);
-
-
 // Function to load a specific note into the editor
 async function loadNoteIntoEditor(filename) {
   try {
+    // Set the current note state right away
+    currentOpenNote = filename; // <-- Added this line
+    
     // 1. Create the full path to the note
     let fullPath = `${NOTES_DIR}/${filename}`;
     
@@ -131,6 +135,10 @@ async function loadNoteIntoEditor(filename) {
     noteArea.value = content;
     filenameInput.value = filename;
 
+    // THIS IS NEW: Make the input read-only
+    filenameInput.readOnly = true;
+    filenameInput.classList.add('filename-readonly');
+
     statusMessage.innerText = `Loaded ${filename}`;
     statusMessage.style.color = "blue";
 
@@ -140,3 +148,41 @@ async function loadNoteIntoEditor(filename) {
     statusMessage.style.color = "red";
   }
 }
+
+// --- ALL OUR EVENT LISTENERS ---
+
+// Call setup functions when the app is ready
+Neutralino.events.on("ready", async () => {
+  await setupApp();
+  await loadNotesList();
+});
+
+// Attach save button listener
+saveButton.addEventListener('click', saveNotes);
+
+newNoteBtn.addEventListener('click', () => {
+  libraryView.style.display = 'none'; 
+  editorView.style.display = 'block'; 
+  
+  noteArea.value = '';
+  filenameInput.value = '';
+  
+  filenameInput.readOnly = false;
+  filenameInput.classList.remove('filename-readonly');
+  
+  statusMessage.innerText = '';
+
+  currentOpenNote = null; // <-- Added this line
+});
+
+// Back button listener
+backBtn.addEventListener('click', () => {
+  // 1. Show library, hide editor
+  libraryView.style.display = 'block'; 
+  editorView.style.display = 'none'; 
+});
+
+// Show save button when user starts typing
+noteArea.addEventListener('input', () => {
+  saveButton.style.display = 'block';
+});

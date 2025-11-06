@@ -15,11 +15,10 @@
   },
   "nativeAllowList": [
     "app.exit",
-    "os.showSaveDialog",
-    "os.showOpenDialog",
-    "debug.log",
     "filesystem.writeFile",
-    "filesystem.readFile"
+    "filesystem.readFile",
+    "filesystem.createDirectory",
+    "filesystem.readDirectory"
   ],
   "globalVariables": {
     "TEST1": "Hello",

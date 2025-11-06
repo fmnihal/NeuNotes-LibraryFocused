@@ -2,24 +2,35 @@
 <html>
   <head>
     <meta charset="UTF-8">
-    <title>Quick Notes</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Quick Notes Library</title>
+    <link rel="stylesheet" href="styles/styles.css">
   </head>
   <body>
     
-    <h1>Quick Notes 📝</h1>
-    
-    <textarea id="note-area" placeholder="Write your notes here..."></textarea>
-    
-    <div class="button-container">
-      <button id="save-btn">Save Notes</button>
-      <button id="load-btn">Load Notes</button>
-    </div>
+    <div class="container">
+      
+      <div id="notes-sidebar">
+        <h2>My Notes</h2>
+        <ul id="notes-list">
+          </ul>
+      </div>
+      
+      <div id="main-content">
+        <h1>Notes Library 📚</h1>
+        
+        <textarea id="note-area" placeholder="Write your notes here..."></textarea>
+        
+        <div class="controls">
+          <input type="text" id="filename-input" placeholder="Enter filename (e.g., my-note.txt)">
+          <button id="save-btn">Save Note</button>
+        </div>
+        
+        <div id="status-message"></div>
+      </div>
 
-    <div id="status-message"></div>
+    </div>
 
     <script src="js/neutralino.js"></script>
     <script src="js/main.js"></script>
-
   </body>
 </html>
